@@ -24,12 +24,10 @@ jobs:
           git config --global user.name "Your Name"
       - name: Checkout code
         uses: actions/checkout@v3
-      # - name: Install Ruby and gems
-      #   uses: ruby/setup-ruby@v1
-      #   with:
-      #     ruby-version: ${{ matrix.ruby-version }}
-      #     bundler-cache: true # runs 'bundle install' and caches installed gems automatically
-      - run: gem install bundler
+      - name: Install Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby-version }}
       - name: Run the setup script
         run: ./bin/setup
       - name: Run tests
@@ -63,8 +61,6 @@ jobs:
         uses: actions/checkout@v3
       - name: Install Ruby and gems
         uses: ruby/setup-ruby@v1
-        with:
-          bundler-cache: true
       - name: Run the setup script
         run: ./bin/setup
       # Add or replace any other lints here
