@@ -9,7 +9,10 @@ require_relative 'lib/amber_extension_generator/version'
   spec.email = ['matmg24@gmail.com', 'piotr.garbus.garbicz@gmail.com']
 
   spec.summary = 'A utility for generating new extensions or component libraries which hook into `amber_component`'
-  spec.description = spec.summary
+  spec.description = <<~DESC
+    A utility for generating new extensions or component libraries which hook into `amber_component`.
+    Create your own themes!
+  DESC
   spec.homepage = 'https://github.com/amber-ruby/amber_extension_generator'
   spec.license = 'MIT'
   spec.required_ruby_version = ">= 2.7.0"
