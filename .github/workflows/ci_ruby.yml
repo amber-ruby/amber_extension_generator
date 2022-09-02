@@ -1,0 +1,73 @@
+name: CI Ruby
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      CI: true
+    strategy:
+      matrix:
+        ruby-version: ['2.7', '3.0', '3.1']
+    steps:
+      - name: Configure Git
+        run: |
+          git config --global user.email "you@example.com"
+          git config --global user.name "Your Name"
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Install Ruby and gems
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby-version }}
+          bundler-cache: true # runs 'bundle install' and caches installed gems automatically
+      - name: Run the setup script
+        run: ./bin/setup
+      - name: Run tests
+        run: bundle exec rake test
+      - name: Code Coverage
+        run: |
+          echo "COVERAGE=$(./bin/code_coverage)" >> $GITHUB_ENV
+          REF=${{ github.ref }}
+          echo "github.ref: $REF"
+          IFS='/' read -ra PATHS <<< "$REF"
+          BRANCH_NAME="${PATHS[1]}_${PATHS[2]}"
+          echo $BRANCH_NAME
+          echo "BRANCH=$(echo ${BRANCH_NAME})" >> $GITHUB_ENV
+      - name: Create the Coverage Badge
+        uses: schneegans/dynamic-badges-action@v1.0.0
+        with:
+          auth: ${{ secrets.GIST_SECRET }}
+          gistID: 82fd98743c74c8c36a9b04c9e325755e
+          filename: amber_extension_generator__${{ env.BRANCH }}.json
+          label: Test Coverage
+          message: ${{ env.COVERAGE }}
+          color: success
+          namedLogo: ruby
+
+  lint:
+    runs-on: ubuntu-latest
+    env:
+      CI: true
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Install Ruby and gems
+        uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+      - name: Run the setup script
+        run: ./bin/setup
+      # Add or replace any other lints here
+      - name: Security audit dependencies
+        run: bundle exec bundle audit --update
+      - name: Lint Ruby files
+        run: bundle exec rubocop --parallel
