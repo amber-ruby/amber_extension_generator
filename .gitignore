@@ -6,11 +6,3 @@
 /pkg/
 /spec/reports/
 /tmp/
-
-# byebug
-ignore.*
-.byebug_history
-
-# IDE config folders
-/.vscode
-/.VSCodeCounter
