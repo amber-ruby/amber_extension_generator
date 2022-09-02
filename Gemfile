@@ -6,15 +6,15 @@ source 'https://rubygems.org'
 gemspec
 
 # Development dependencies
-# gem 'byebug'
+gem 'byebug'
 gem 'rake', '~> 13.0'
-# gem 'rubocop', '~> 1.21'
-# gem 'solargraph', '~> 0.45.0'
-# gem 'yard'
+gem 'rubocop', '~> 1.21'
+gem 'solargraph', '~> 0.45.0'
+gem 'yard'
 
 # Testing dependencies
-# gem 'bundler-audit'
+gem 'bundler-audit'
 gem 'minitest', '~> 5.0'
-# gem 'shoulda-context', '~> 2.0'
-# gem 'simplecov', require: false
-# gem 'simplecov-cobertura', require: false
+gem 'shoulda-context', '~> 2.0'
+gem 'simplecov', require: false
+gem 'simplecov-cobertura', require: false
