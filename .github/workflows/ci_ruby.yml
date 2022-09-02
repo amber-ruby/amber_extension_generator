@@ -24,11 +24,11 @@ jobs:
           git config --global user.name "Your Name"
       - name: Checkout code
         uses: actions/checkout@v3
-      - name: Install Ruby and gems
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: ${{ matrix.ruby-version }}
-          bundler-cache: true # runs 'bundle install' and caches installed gems automatically
+      # - name: Install Ruby and gems
+      #   uses: ruby/setup-ruby@v1
+      #   with:
+      #     ruby-version: ${{ matrix.ruby-version }}
+      #     bundler-cache: true # runs 'bundle install' and caches installed gems automatically
       - name: Run the setup script
         run: ./bin/setup
       - name: Run tests
