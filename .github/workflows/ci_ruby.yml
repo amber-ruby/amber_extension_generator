@@ -14,9 +14,9 @@ jobs:
     runs-on: ubuntu-latest
     env:
       CI: true
-    strategy:
-      matrix:
-        ruby-version: ['2.7', '3.0', '3.1']
+    # strategy:
+    #   matrix:
+    #     ruby-version: ['2.7', '3.0', '3.1']
     steps:
       - name: Configure Git
         run: |
@@ -27,8 +27,9 @@ jobs:
       - name: Install Ruby and gems
         uses: ruby/setup-ruby@v1
         with:
-          ruby-version: ${{ matrix.ruby-version }}
-          bundler-cache: true # runs 'bundle install' and caches installed gems automatically
+          ruby-version: 3.1 #${{ matrix.ruby-version }}
+          # bundler-cache: true # runs 'bundle install' and caches installed gems automatically
+      - run: bundle install
       - name: Run tests
         run: bundle exec rake test
       - name: Code Coverage
