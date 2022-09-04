@@ -42,11 +42,6 @@ module ::AmberExtensionGenerator
 
       # @return [Pathname] Path of the newly generated gem
       attr_accessor :gem_path
-
-      # @return [String]
-      def gem_name
-        gem_path.basename.to_s
-      end
     end
   end
 end

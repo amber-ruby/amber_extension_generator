@@ -33,7 +33,7 @@ module ::AmberExtensionGenerator
         end
 
         ::CLI::UI::Frame.open('Patch gem') do
-          create('lib/components/base.rb', <<~RUBY)
+          create('lib/components/base_component.rb', <<~RUBY)
             # frozen_string_literal: true
 
             require 'amber_component'
@@ -46,6 +46,15 @@ module ::AmberExtensionGenerator
               class BaseComponent < ::AmberComponent::Base; end
             end
           RUBY
+
+          create('.rubocop.yml', ::File.read(ROOT_GEM_PATH / '.rubocop.yml'))
+
+          substitute(gem_entry_file_path, /^end/, <<~FILE.chomp)
+            end
+
+            require_relative 'components/base_component'
+            ::Dir['components/**/*'].sort.each { require_relative _1 }
+          FILE
         end
       end
 
@@ -55,7 +64,21 @@ module ::AmberExtensionGenerator
       # @return [String] STDOUT
       def syscall(command)
         cmd = ::TTY::Command.new(color: true, printer: :quiet)
-        cmd.run!(command, pty: true)
+        cmd.run!(command, pty: true, input: "y\n")
+      end
+
+      # @return [Pathname]
+      def gem_entry_file_path
+        gem_entry_folder_path.sub_ext('.rb')
+      end
+
+      def gem_entry_folder_path
+        ::Pathname.new('lib') / gem_name.gsub('-', '/')
+      end
+
+      # @return [String]
+      def gem_name
+        root_path.basename.to_s
       end
 
       # @return [Pathname]
@@ -66,7 +89,7 @@ module ::AmberExtensionGenerator
       # @param file_path [String, Pathname]
       # @param content [String]
       def create(file_path, content)
-        print "      create  ".green
+        print "      create      ".green
         puts file_path
 
         path = root_path / file_path
@@ -79,7 +102,7 @@ module ::AmberExtensionGenerator
       # @param regexp [Regexp]
       # @param replacement [String]
       def substitute(file_path, regexp, replacement)
-        puts "      substitute  ".blue
+        print "      substitute  ".blue
         puts file_path
 
         path = root_path / file_path
@@ -91,7 +114,7 @@ module ::AmberExtensionGenerator
 
       # @return [String]
       def root_module_name
-        camelize(@args.gem_name)
+        camelize(gem_name)
       end
 
       # @param string [String]
