@@ -32,11 +32,13 @@ require_relative 'lib/amber_extension_generator/version'
     end
   end
   spec.bindir = 'exe'
-  spec.executables = spec.files.grep(%r{\Aexe/}) { |f| ::File.basename(f) }
+  spec.executables = %w[amber_extension_generator]
   spec.require_paths = %w[lib]
 
   # Uncomment to register a new dependency of your gem
-  # spec.add_dependency "actionview", ">= 6"
+  spec.add_dependency 'rainbow', '>= 3.0'
+  spec.add_dependency 'cli-ui', '~> 1'
+  spec.add_dependency 'tty-command', '~> 0'
 
   # For more information and examples about making a new gem, check out our
   # guide at: https://bundler.io/guides/creating_gem.html

@@ -8,7 +8,7 @@ gemspec
 # Development dependencies
 gem 'byebug'
 gem 'rake', '~> 13.0'
-gem 'rubocop', '~> 1.21'
+gem 'rubocop'
 gem 'solargraph', '~> 0.45.0'
 gem 'yard'
 

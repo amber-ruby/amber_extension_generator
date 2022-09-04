@@ -2,6 +2,9 @@ PATH
   remote: .
   specs:
     amber_extension_generator (0.1.0)
+      cli-ui (~> 1)
+      rainbow (>= 3.0)
+      tty-command (~> 0)
 
 GEM
   remote: https://rubygems.org/
@@ -13,6 +16,7 @@ GEM
       bundler (>= 1.2.0, < 3)
       thor (~> 1.0)
     byebug (11.1.3)
+    cli-ui (1.5.1)
     diff-lcs (1.5.0)
     docile (1.4.0)
     e2mmap (0.1.0)
@@ -28,6 +32,8 @@ GEM
     parallel (1.22.1)
     parser (3.1.2.1)
       ast (~> 2.4.1)
+    pastel (0.8.0)
+      tty-color (~> 0.5)
     racc (1.6.0)
     rainbow (3.1.1)
     rake (13.0.6)
@@ -75,6 +81,9 @@ GEM
       yard (~> 0.9, >= 0.9.24)
     thor (1.2.1)
     tilt (2.0.11)
+    tty-color (0.6.0)
+    tty-command (0.10.1)
+      pastel (~> 0.8)
     unicode-display_width (2.2.0)
     webrick (1.7.0)
     yard (0.9.28)
@@ -89,7 +98,7 @@ DEPENDENCIES
   byebug
   minitest (~> 5.0)
   rake (~> 13.0)
-  rubocop (~> 1.21)
+  rubocop
   shoulda-context (~> 2.0)
   simplecov
   simplecov-cobertura
