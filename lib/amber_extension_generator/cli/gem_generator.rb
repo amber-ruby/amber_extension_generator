@@ -28,12 +28,12 @@ module ::AmberExtensionGenerator
       # @return [void]
       def call
         ::CLI::UI::StdoutRouter.enable
-        ::CLI::UI::Frame.open('Generate gem') do
-          syscall("bundle gem #{root_path}")
+        ::CLI::UI::Frame.open 'Generate gem' do
+          syscall "bundle gem #{root_path}"
         end
 
-        ::CLI::UI::Frame.open('Patch gem') do
-          create('lib/components/base_component.rb', <<~RUBY)
+        ::CLI::UI::Frame.open 'Patch gem' do
+          create gem_entry_folder_path / 'components' / 'base_component.rb', <<~RUBY
             # frozen_string_literal: true
 
             require 'amber_component'
@@ -47,14 +47,19 @@ module ::AmberExtensionGenerator
             end
           RUBY
 
-          create('.rubocop.yml', ::File.read(ROOT_GEM_PATH / '.rubocop.yml'))
+          create '.rubocop.yml', ::File.read(ROOT_GEM_PATH / '.rubocop.yml')
 
-          substitute(gem_entry_file_path, /^end/, <<~FILE.chomp)
+          substitute gem_entry_file_path, /^end/, <<~RUBY.chomp
             end
 
-            require_relative 'components/base_component'
-            ::Dir['components/**/*'].sort.each { require_relative _1 }
-          FILE
+            require_relative '#{gem_entry_folder_path.basename}/components/base_component'
+            ::Dir['#{gem_entry_folder_path.basename}/components/**/*'].sort.each { require_relative _1 }
+          RUBY
+
+          substitute "#{gem_name}.gemspec", /^end/, <<~RUBY.chomp
+              spec.add_dependency 'amber_component'
+            end
+          RUBY
         end
       end
 
@@ -89,7 +94,7 @@ module ::AmberExtensionGenerator
       # @param file_path [String, Pathname]
       # @param content [String]
       def create(file_path, content)
-        print "      create      ".green
+        print "  create      ".green
         puts file_path
 
         path = root_path / file_path
@@ -102,7 +107,7 @@ module ::AmberExtensionGenerator
       # @param regexp [Regexp]
       # @param replacement [String]
       def substitute(file_path, regexp, replacement)
-        print "      substitute  ".blue
+        print "  substitute  ".blue
         puts file_path
 
         path = root_path / file_path
@@ -127,10 +132,10 @@ module ::AmberExtensionGenerator
                    string.sub(/^(?:(?=\b|[A-Z_])|\w)/, &:downcase)
                  end
 
-        string = string.gsub(%r{(?:_|(/))([a-z\d]*)}) do
+        string.gsub!(%r{(?:_|(/))([a-z\d]*)}) do
           "#{::Regexp.last_match(1)}#{::Regexp.last_match(2).capitalize}"
         end
-        string.gsub('/', '::')
+        string.gsub('/', '::').gsub('-', '::')
       end
     end
   end
