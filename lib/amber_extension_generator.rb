@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative 'amber_extension_generator/version'
+require_relative 'amber_extension_generator/gem_name'
 
 require 'pathname'
 

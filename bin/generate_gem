@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
 
-rm -rf ignore.tmp/materialize-component_lib
-exe/amber_extension_generator ignore.tmp/materialize-component_lib
+rm -rf tmp/materialize-component_lib
+exe/amber_extension_generator tmp/materialize-component_lib

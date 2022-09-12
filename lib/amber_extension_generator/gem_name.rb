@@ -2,5 +2,5 @@
 
 module ::AmberExtensionGenerator
   # @return [String]
-  VERSION = '0.1.0'
+  GEM_NAME = 'amber_extension_generator'
 end

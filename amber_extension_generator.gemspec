@@ -1,9 +1,10 @@
 # frozen_string_literal: true
 
 require_relative 'lib/amber_extension_generator/version'
+require_relative 'lib/amber_extension_generator/gem_name'
 
 ::Gem::Specification.new do |spec|
-  spec.name = 'amber_extension_generator'
+  spec.name = ::AmberExtensionGenerator::GEM_NAME
   spec.version = ::AmberExtensionGenerator::VERSION
   spec.authors = ['Ruby-Amber', 'Mateusz Drewniak', 'Garbus Beach']
   spec.email = ['matmg24@gmail.com', 'piotr.garbus.garbicz@gmail.com']

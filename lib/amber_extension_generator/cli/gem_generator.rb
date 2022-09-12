@@ -5,6 +5,7 @@ require 'fileutils'
 require 'rainbow/refinement'
 require 'cli/ui'
 require 'tty-command'
+# require 'byebug'
 
 using ::Rainbow
 
@@ -28,48 +29,124 @@ module ::AmberExtensionGenerator
       # @return [void]
       def call
         ::CLI::UI::StdoutRouter.enable
-        ::CLI::UI::Frame.open 'Generate gem' do
-          syscall "bundle gem #{root_path}"
+        ::CLI::UI::Frame.open 'Create gem', color: :green do
+          ::CLI::UI::Frame.open 'Generate gem with bundler' do
+            syscall "bundle gem #{root_path}"
+          end
+
+          ::CLI::UI::Frame.open 'Patch gem' do
+            create gem_entry_folder_path / 'components' / 'base_component.rb', <<~RUBY
+              # frozen_string_literal: true
+
+              require 'amber_component'
+
+              module #{root_module_name}
+                # Abstract class which should serve as a superclass
+                # for all components.
+                #
+                # @abstract Subclass to create a new component.
+                class BaseComponent < ::AmberComponent::Base; end
+              end
+            RUBY
+
+            create gem_entry_folder_path / 'components.rb', <<~RUBY
+              # frozen_string_literal: true
+
+              require_relative 'components/base_component'
+              ::Dir['components/**/*'].sort.each { require_relative _1 }
+            RUBY
+
+            substitute gem_entry_file_path, /^end/, <<~RUBY.chomp
+              end
+
+              require_relative '#{gem_entry_folder_path.basename}/components.rb'
+            RUBY
+
+            create '.rubocop.yml', ::File.read(ROOT_GEM_PATH / '.rubocop.yml')
+
+            substitute "#{gem_name}.gemspec", /^end/, <<~RUBY.chomp
+                # ignore the dummy Rails app when building the gem
+                spec.files.reject! { _1.match(/^dummy_app/) }
+                spec.add_dependency 'amber_component', '~> #{VERSION}'
+              end
+            RUBY
+          end
         end
+        puts
 
-        ::CLI::UI::Frame.open 'Patch gem' do
-          create gem_entry_folder_path / 'components' / 'base_component.rb', <<~RUBY
-            # frozen_string_literal: true
-
-            require 'amber_component'
-
-            module #{root_module_name}
-              # Abstract class which should serve as a superclass
-              # for all components.
-              #
-              # @abstract Subclass to create a new component.
-              class BaseComponent < ::AmberComponent::Base; end
+        ::CLI::UI::Frame.open 'Rails dummy app', color: :magenta do
+          unless syscall? 'gem list -i rails'
+            ::CLI::UI::Frame.open 'Install Rails' do
+              syscall('gem install rails')
             end
-          RUBY
+          end
 
-          create '.rubocop.yml', ::File.read(ROOT_GEM_PATH / '.rubocop.yml')
+          ::CLI::UI::Frame.open 'Generate app' do
+            syscall "rails new #{root_path / rails_dummy_path} -m #{rails_template_path}", env: { GEM_NAME: gem_name }
+          end
 
-          substitute gem_entry_file_path, /^end/, <<~RUBY.chomp
-            end
+          ::CLI::UI::Frame.open 'Patch app' do
+            append rails_dummy_path / 'Gemfile', <<~RUBY
 
-            require_relative '#{gem_entry_folder_path.basename}/components/base_component'
-            ::Dir['#{gem_entry_folder_path.basename}/components/**/*'].sort.each { require_relative _1 }
-          RUBY
+              # === GEM AUTO-RELOADING ===
 
-          substitute "#{gem_name}.gemspec", /^end/, <<~RUBY.chomp
-              spec.add_dependency 'amber_component'
-            end
-          RUBY
+              class ::ExtensionGem
+                # @return [String] Name of the gem.
+                attr_reader :name
+                # @return [Pathname] Path to the gem.
+                attr_reader :path
+                # @return [Array<Symbol>] Top-level constants defined by the gem.
+                attr_reader :constants
+                # @return [String]
+                attr_reader :require_path
+
+                # @param name [String]
+                # @param path [String, Pathname]
+                # @param constants [Array<Symbol>]
+                # @param require_path [String, nil]
+                def initialize(name:, path:, constants:, require_path: nil)
+                  @name = name
+                  @path = ::File.expand_path(path, __dir__)
+                  @constants = constants
+                  @require_path = require_path || @name.gsub('-', '/')
+                end
+              end
+
+              # @return [ExtensionGem]
+              ::AMBER_EXTENSION_GEM = ::ExtensionGem.new(
+                name: #{gem_name.inspect},
+                path: '..',
+                constants: %i[#{root_module_name}].freeze
+              )
+              gem ::AMBER_EXTENSION_GEM.name, path: ::AMBER_EXTENSION_GEM.path
+
+              # === END GEM AUTO-RELOADING ===
+            RUBY
+          end
         end
       end
 
       private
 
+      # Performs a shell command with a PTY,
+      # captures its output and logs it to this process's STDOUT.
+      #
       # @param command [String]
+      # @param env [Hash] Environment variables
       # @return [String] STDOUT
-      def syscall(command)
+      def syscall(command, env: {})
         cmd = ::TTY::Command.new(color: true, printer: :quiet)
-        cmd.run!(command, pty: true, input: "y\n")
+        cmd.run!(command, pty: true, input: "y\n", env: env)
+      end
+
+      # Performs a quiet shell command (without logging to STDOUT)
+      # and returns the process's exit status.
+      #
+      # @param command [String]
+      # @return [Boolean] whether the command was successful
+      def syscall?(command)
+        cmd = ::TTY::Command.new(printer: :null)
+        !cmd.run!(command).failure?
       end
 
       # @return [Pathname]
@@ -87,8 +164,18 @@ module ::AmberExtensionGenerator
       end
 
       # @return [Pathname]
+      def rails_dummy_path
+        ::Pathname.new 'dummy_app'
+      end
+
+      # @return [Pathname]
       def root_path
         @args.gem_path
+      end
+
+      # @return [Pathname]
+      def rails_template_path
+        ROOT_GEM_PATH / 'lib' / 'dummy_rails_app_template.rb'
       end
 
       # @param file_path [String, Pathname]
@@ -106,6 +193,7 @@ module ::AmberExtensionGenerator
       # @param file_path [String, Pathname]
       # @param regexp [Regexp]
       # @param replacement [String]
+      # @return [void]
       def substitute(file_path, regexp, replacement)
         print "  substitute  ".blue
         puts file_path
@@ -117,9 +205,21 @@ module ::AmberExtensionGenerator
         path.write file_content.sub(regexp, replacement)
       end
 
+      # @param file_path [String, Pathname]
+      # @param content[String]
+      # @return [void]
+      def append(file_path, content)
+        print "  append      ".yellow
+        puts file_path
+
+        # @type [Pathname]
+        path = root_path / file_path
+        ::File.open(path, 'a') { _1.write(content) }
+      end
+
       # @return [String]
       def root_module_name
-        camelize(gem_name)
+        camelize(gem_name.gsub('-', '/'))
       end
 
       # @param string [String]
@@ -135,7 +235,7 @@ module ::AmberExtensionGenerator
         string.gsub!(%r{(?:_|(/))([a-z\d]*)}) do
           "#{::Regexp.last_match(1)}#{::Regexp.last_match(2).capitalize}"
         end
-        string.gsub('/', '::').gsub('-', '::')
+        string.gsub('/', '::')
       end
     end
   end
