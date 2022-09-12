@@ -53,7 +53,7 @@ module ::AmberExtensionGenerator
               # frozen_string_literal: true
 
               require_relative 'components/base_component'
-              ::Dir['components/**/*'].sort.each { require_relative _1 }
+              ::Dir[::File.expand_path('components/**/*', __dir__)].sort.each { require_relative _1 }
             RUBY
 
             substitute gem_entry_file_path, /^end/, <<~RUBY.chomp
@@ -67,7 +67,7 @@ module ::AmberExtensionGenerator
             substitute "#{gem_name}.gemspec", /^end/, <<~RUBY.chomp
                 # ignore the dummy Rails app when building the gem
                 spec.files.reject! { _1.match(/^dummy_app/) }
-                spec.add_dependency 'amber_component', '~> #{VERSION}'
+                spec.add_dependency 'amber_component'
               end
             RUBY
           end

@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    amber_extension_generator (0.1.0)
+    amber_extension_generator (0.0.3)
       cli-ui (~> 1)
       rainbow (>= 3.0)
       tty-command (~> 0)

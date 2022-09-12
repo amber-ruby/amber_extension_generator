@@ -1,4 +1,30 @@
-#!/usr/bin/env bash
+#!/usr/bin/env ruby
+# frozen_string_literal: true
 
-rm -rf tmp/materialize-component_lib
-exe/amber_extension_generator tmp/materialize-component_lib
+require 'fileutils'
+require 'pathname'
+
+def system!(val)
+  system(val) || abort("Command `#{val}` failed")
+end
+
+# @return [Pathname]
+GEM_PATH = ::Pathname.new 'tmp/materialize-component_lib'
+GEMSPEC_PATH = ::GEM_PATH / ::GEM_PATH.basename.sub_ext('.gemspec')
+
+::FileUtils.chdir ::File.expand_path('..', __dir__) do
+  system! "rm -rf #{::GEM_PATH}"
+  system! "exe/amber_extension_generator #{::GEM_PATH}"
+
+  legal_lines = []
+  ::File.open(::GEMSPEC_PATH) do |file|
+    file.each_line do |line|
+      next if line.match?(/(TODO: )|(homepage_uri)/)
+
+      legal_lines << line
+    end
+  end
+
+  legal_lines.insert 11, "  spec.summary = 'FAKE'\n"
+  ::File.write(::GEMSPEC_PATH, legal_lines.join)
+end

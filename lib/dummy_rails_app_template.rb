@@ -2,6 +2,7 @@
 
 generate :controller, 'test', 'index'
 route "root to: 'test#index'"
+gem 'byebug'
 
 environment <<~RUBY, env: :development
   # === GEM AUTO-RELOADING ===
@@ -11,15 +12,22 @@ environment <<~RUBY, env: :development
     reload_paths = {}
     dir = ::AMBER_EXTENSION_GEM.path.to_s
     reload_paths[dir] = ['rb']
-    ::ActiveSupport::Dependencies.explicitly_unloadable_constants.concat ::AMBER_EXTENSION_GEM.constants
 
     # define a file watcher for the extension gem
     extension_gem_reloader = config.file_watcher.new([], reload_paths) do
       puts '    Reloading the extension gem'
 
       # delete all constants defined by the extension gem
-      ::ActiveSupport::Dependencies.explicitly_unloadable_constants.each do |const|
-        ::ActiveSupport::Dependencies.remove_constant const
+      ::AMBER_EXTENSION_GEM.constants.each do |const|
+        # Normalize ::Foo, ::Object::Foo, Object::Foo, Object::Object::Foo, etc. as Foo.
+        normalized = const.to_s.delete_prefix('::')
+        normalized.sub!(/\A(Object::)+/, '')
+
+        constants = normalized.split('::')
+        to_remove = constants.pop
+        parent = constants.empty? ? ::Object : ::Object.const_get(constants.join('::'))
+
+        parent.__send__(:remove_const, to_remove)
       end
 
       # remove extension gems' files from the global
