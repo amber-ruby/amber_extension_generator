@@ -1,0 +1,10 @@
+# frozen_string_literal: true
+
+class <%= class_name %> < ::ApplicationComponent
+  # Props that your component accepts
+  prop :time, type: ::Time, default: -> { ::Time.now }
+
+  after_initialize do
+    # some initialization
+  end
+end

@@ -1,0 +1,33 @@
+# === GEM AUTO-RELOADING ===
+
+class ::ExtensionGem
+  # @return [String] Name of the gem.
+  attr_reader :name
+  # @return [Pathname] Path to the gem.
+  attr_reader :path
+  # @return [Array<Symbol>] Top-level constants defined by the gem.
+  attr_reader :constants
+  # @return [String]
+  attr_reader :require_path
+
+  # @param name [String]
+  # @param path [String, Pathname]
+  # @param constants [Array<Symbol>]
+  # @param require_path [String, nil]
+  def initialize(name:, path:, constants:, require_path: nil)
+    @name = name
+    @path = ::File.expand_path(path, __dir__)
+    @constants = constants
+    @require_path = require_path || @name.gsub('-', '/')
+  end
+end
+
+# @return [ExtensionGem]
+::AMBER_EXTENSION_GEM = ::ExtensionGem.new(
+  name: "<%= gem_name %>",
+  path: '..',
+  constants: %i[<%= root_module_name %>].freeze
+)
+gem ::AMBER_EXTENSION_GEM.name, path: ::AMBER_EXTENSION_GEM.path
+
+# === END GEM AUTO-RELOADING ===

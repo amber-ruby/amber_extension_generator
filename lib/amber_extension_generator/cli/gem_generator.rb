@@ -5,7 +5,8 @@ require 'fileutils'
 require 'rainbow/refinement'
 require 'cli/ui'
 require 'tty-command'
-# require 'byebug'
+require 'erb'
+require 'debug'
 
 using ::Rainbow
 
@@ -35,41 +36,41 @@ module ::AmberExtensionGenerator
           end
 
           ::CLI::UI::Frame.open 'Patch gem' do
-            create gem_entry_folder_path / 'components' / 'base_component.rb', <<~RUBY
-              # frozen_string_literal: true
+            template 'components/base_component.rb.erb', gem_entry_folder_path / 'components' / 'base_component.rb'
 
-              require 'amber_component'
-
-              module #{root_module_name}
-                # Abstract class which should serve as a superclass
-                # for all components.
-                #
-                # @abstract Subclass to create a new component.
-                class BaseComponent < ::AmberComponent::Base; end
-              end
-            RUBY
-
-            create gem_entry_folder_path / 'components.rb', <<~RUBY
-              # frozen_string_literal: true
-
-              require_relative 'components/base_component'
-              ::Dir[::File.expand_path('components/**/*', __dir__)].sort.each { require_relative _1 }
-            RUBY
+            copy 'components.rb', gem_entry_folder_path / 'components.rb'
 
             substitute gem_entry_file_path, /^end/, <<~RUBY.chomp
               end
 
-              require_relative '#{gem_entry_folder_path.basename}/components.rb'
+              require_relative '#{gem_entry_folder_path.basename}/components'
+              # Override this if you want to have a different name for the
+              # base component of your gem
+              #{root_module_name}::ABSTRACT_COMPONENT = #{root_module_name}::BaseComponent
             RUBY
 
             create '.rubocop.yml', ::File.read(ROOT_GEM_PATH / '.rubocop.yml')
+
+            template 'bin/generate.erb', 'bin/generate'
+            make_executable root_path / 'bin/generate'
+
+            ::FileUtils.mkdir root_path / 'templates'
+
+            copy 'templates/component.rb.tt'
+            copy 'templates/style.css.tt'
+            copy 'templates/view.html.erb.tt'
 
             substitute "#{gem_name}.gemspec", /^end/, <<~RUBY.chomp
                 # ignore the dummy Rails app when building the gem
                 spec.files.reject! { _1.match(/^dummy_app/) }
                 spec.add_dependency 'amber_component'
+                spec.add_development_dependency 'thor'
               end
             RUBY
+
+            substitute 'Rakefile', %r{test_\*\.rb}, '*_test.rb'
+            inner_module_name = gem_name.split('-').last
+            move gem_test_folder_path.parent / "test_#{inner_module_name}.rb", gem_test_folder_path.parent / "#{inner_module_name}_test.rb"
           end
         end
         puts
@@ -86,42 +87,7 @@ module ::AmberExtensionGenerator
           end
 
           ::CLI::UI::Frame.open 'Patch app' do
-            append rails_dummy_path / 'Gemfile', <<~RUBY
-
-              # === GEM AUTO-RELOADING ===
-
-              class ::ExtensionGem
-                # @return [String] Name of the gem.
-                attr_reader :name
-                # @return [Pathname] Path to the gem.
-                attr_reader :path
-                # @return [Array<Symbol>] Top-level constants defined by the gem.
-                attr_reader :constants
-                # @return [String]
-                attr_reader :require_path
-
-                # @param name [String]
-                # @param path [String, Pathname]
-                # @param constants [Array<Symbol>]
-                # @param require_path [String, nil]
-                def initialize(name:, path:, constants:, require_path: nil)
-                  @name = name
-                  @path = ::File.expand_path(path, __dir__)
-                  @constants = constants
-                  @require_path = require_path || @name.gsub('-', '/')
-                end
-              end
-
-              # @return [ExtensionGem]
-              ::AMBER_EXTENSION_GEM = ::ExtensionGem.new(
-                name: #{gem_name.inspect},
-                path: '..',
-                constants: %i[#{root_module_name}].freeze
-              )
-              gem ::AMBER_EXTENSION_GEM.name, path: ::AMBER_EXTENSION_GEM.path
-
-              # === END GEM AUTO-RELOADING ===
-            RUBY
+            append rails_dummy_path / 'Gemfile', template_content('rails_dummy/Gemfile.erb')
           end
         end
       end
@@ -149,18 +115,74 @@ module ::AmberExtensionGenerator
         !cmd.run!(command).failure?
       end
 
+      # @param template_path [String, Pathname]
+      # @param target_path [String, Pathname]
+      # @return [void]
+      def template(template_path, target_path)
+        create target_path, template_content(template_path)
+      end
+
+      # @param source_path [String, Pathname]
+      # @param target_path [String, Pathname]
+      # @return [void]
+      def copy(source_path, target_path = source_path, recursive: false)
+        source = ROOT_GEM_PATH / 'lib' / 'amber_extension_generator' / 'templates' / source_path
+        target = root_path / target_path
+        return ::FileUtils.cp_r source, target if recursive
+
+        ::FileUtils.cp source, target
+      end
+
+      # @param source_path [String, Pathname]
+      # @param target_path [String, Pathname]
+      # @return [void]
+      def move(source_path, target_path)
+        source = root_path / source_path
+        target = root_path / target_path
+        ::FileUtils.move source, target
+      end
+
+      # @param path [String, Pathname]
+      # @return [String] Parsed content of the template
+      def template_content(path)
+        template_path = ROOT_GEM_PATH / 'lib' / 'amber_extension_generator' / 'templates' / path
+        ::ERB.new(template_path.read).result(binding)
+      end
+
+      # @param path [String, Pathname]
+      # @return [void]
+      def make_executable(path)
+        ::FileUtils.chmod 'ugo+x', path
+      end
+
       # @return [Pathname]
       def gem_entry_file_path
         gem_entry_folder_path.sub_ext('.rb')
       end
 
+      # @return [Pathname]
       def gem_entry_folder_path
         ::Pathname.new('lib') / gem_name.gsub('-', '/')
+      end
+
+      # @return [Pathname]
+      def gem_test_folder_path
+        (::Pathname.new('test') / gem_name.gsub('-', '/'))
       end
 
       # @return [String]
       def gem_name
         root_path.basename.to_s
+      end
+
+      # @return [Pathname]
+      def bin_path
+        ::Pathname.new 'bin'
+      end
+
+      # @return [Pathname]
+      def template_path
+        ::Pathname.new 'template'
       end
 
       # @return [Pathname]
@@ -203,6 +225,22 @@ module ::AmberExtensionGenerator
         raise "Cannot substitute #{path} because #{regexp.inspect} was not found" unless file_content.match?(regexp)
 
         path.write file_content.sub(regexp, replacement)
+      end
+
+      # @param file_path [String, Pathname]
+      # @param content[String]
+      # @return [void]
+      def prepend(file_path, content)
+        print "  prepend     ".yellow
+        puts file_path
+
+        # @type [Pathname]
+        path = root_path / file_path
+        current_content = ::File.read path
+        ::File.open(path, 'w') do |f|
+          f.write(content)
+          f.write(current_content)
+        end
       end
 
       # @param file_path [String, Pathname]

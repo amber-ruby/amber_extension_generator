@@ -1,0 +1,11 @@
+# frozen_string_literal: true
+
+require 'amber_component'
+
+module <%= root_module_name %>
+  # Abstract class which should serve as a superclass
+  # for all components.
+  #
+  # @abstract Subclass to create a new component.
+  class BaseComponent < ::AmberComponent::Base; end
+end
