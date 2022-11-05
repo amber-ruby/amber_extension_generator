@@ -1,6 +1,8 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
+# Generates a new Amber Extension gem for development
+
 require 'fileutils'
 require 'pathname'
 
