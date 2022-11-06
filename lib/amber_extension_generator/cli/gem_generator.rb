@@ -60,7 +60,9 @@ module ::AmberExtensionGenerator
             create '.rubocop.yml', ::File.read(ROOT_GEM_PATH / '.rubocop.yml')
 
             template 'bin/generate.erb', 'bin/generate'
+            template 'bin/dev.erb', 'bin/dev'
             make_executable 'bin/generate'
+            make_executable 'bin/dev'
 
             make_dir 'templates'
 
@@ -71,9 +73,10 @@ module ::AmberExtensionGenerator
 
             substitute "#{gem_name}.gemspec", /^end/, <<~RUBY.chomp
                 # ignore the dummy Rails app when building the gem
-                spec.files.reject! { _1.match(/^dummy_app/) }
+                spec.files.reject! { _1.match(/^#{rails_dummy_path}/) }
                 spec.add_dependency 'amber_component'
                 spec.add_development_dependency 'thor'
+                spec.add_development_dependency 'sassc'
               end
             RUBY
           end
