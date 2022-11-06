@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-class <%= class_name %> < ::ApplicationComponent
+class <%= full_class_name %> < <%= abstract_component %>
   # Props that your component accepts
   prop :time, type: ::Time, default: -> { ::Time.now }
 

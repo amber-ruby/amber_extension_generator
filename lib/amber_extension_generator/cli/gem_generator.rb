@@ -29,9 +29,18 @@ module ::AmberExtensionGenerator
       # @return [void]
       def call
         ::CLI::UI::StdoutRouter.enable
+        generate_amber_gem
+        puts
+        generate_rails_dummy_app
+      end
+
+      private
+
+      # @return [void]
+      def generate_amber_gem
         ::CLI::UI::Frame.open 'Create gem', color: :green do
           ::CLI::UI::Frame.open 'Generate gem with bundler' do
-            syscall "bundle gem #{root_path}"
+            syscall "bundle gem #{root_path} --linter=rubocop --ci=github --test=test-unit", input: "y\n"
           end
 
           ::CLI::UI::Frame.open 'Patch gem' do
@@ -51,13 +60,14 @@ module ::AmberExtensionGenerator
             create '.rubocop.yml', ::File.read(ROOT_GEM_PATH / '.rubocop.yml')
 
             template 'bin/generate.erb', 'bin/generate'
-            make_executable root_path / 'bin/generate'
+            make_executable 'bin/generate'
 
-            ::FileUtils.mkdir root_path / 'templates'
+            make_dir 'templates'
 
             copy 'templates/component.rb.tt'
             copy 'templates/style.css.tt'
             copy 'templates/view.html.erb.tt'
+            copy 'templates/component_test.rb.tt'
 
             substitute "#{gem_name}.gemspec", /^end/, <<~RUBY.chomp
                 # ignore the dummy Rails app when building the gem
@@ -66,14 +76,12 @@ module ::AmberExtensionGenerator
                 spec.add_development_dependency 'thor'
               end
             RUBY
-
-            substitute 'Rakefile', %r{test_\*\.rb}, '*_test.rb'
-            inner_module_name = gem_name.split('-').last
-            move gem_test_folder_path.parent / "test_#{inner_module_name}.rb", gem_test_folder_path.parent / "#{inner_module_name}_test.rb"
           end
         end
-        puts
+      end
 
+      # @return [void]
+      def generate_rails_dummy_app
         ::CLI::UI::Frame.open 'Rails dummy app', color: :magenta do
           unless syscall? 'gem list -i rails'
             ::CLI::UI::Frame.open 'Install Rails' do
@@ -82,7 +90,9 @@ module ::AmberExtensionGenerator
           end
 
           ::CLI::UI::Frame.open 'Generate app' do
-            syscall "rails new #{root_path / rails_dummy_path} -m #{rails_template_path}", env: { GEM_NAME: gem_name }
+            syscall "rails new #{root_path / rails_dummy_path} -m #{rails_template_path}",
+                    env: { GEM_NAME: gem_name },
+                    input: "y\n"
           end
 
           ::CLI::UI::Frame.open 'Patch app' do
@@ -91,29 +101,33 @@ module ::AmberExtensionGenerator
         end
       end
 
-      private
-
       # Performs a shell command with a PTY,
       # captures its output and logs it to this process's STDOUT.
       #
       # @param command [String]
-      # @param env [Hash] Environment variables
+      # @param env [Hash{Symbol => String}] Environment variables
+      # @param input [String, nil] Input to the process
       # @return [String] STDOUT
-      def syscall(command, env: {})
+      def syscall(command, env: {}, input: nil)
         cmd = ::TTY::Command.new(color: true, printer: :quiet)
-        cmd.run!(command, pty: true, input: "y\n", env: env)
+        cmd.run!(command, pty: true, input: input, env: env)
       end
 
       # Performs a quiet shell command (without logging to STDOUT)
-      # and returns the process's exit status.
+      # and returns the process's exit status as a `Boolean`.
       #
       # @param command [String]
+      # @param env [Hash{Symbol => String}] Environment variables
+      # @param input [String, nil] Input to the process
       # @return [Boolean] whether the command was successful
-      def syscall?(command)
+      def syscall?(command, env: {}, input: nil)
         cmd = ::TTY::Command.new(printer: :null)
-        !cmd.run!(command).failure?
+        !cmd.run!(command, input: input, env: env).failure?
       end
 
+      # Parse a template file from this gem using ERB and
+      # and copy it to the newly generated gem.
+      #
       # @param template_path [String, Pathname]
       # @param target_path [String, Pathname]
       # @return [void]
@@ -121,17 +135,22 @@ module ::AmberExtensionGenerator
         create target_path, template_content(template_path)
       end
 
+      # Copy a file from this gem's template folder to
+      # the newly generated gem.
+      #
       # @param source_path [String, Pathname]
       # @param target_path [String, Pathname]
       # @return [void]
       def copy(source_path, target_path = source_path, recursive: false)
-        source = ROOT_GEM_PATH / 'lib' / 'amber_extension_generator' / 'templates' / source_path
+        source = TEMPLATES_FOLDER_PATH / source_path
         target = root_path / target_path
         return ::FileUtils.cp_r source, target if recursive
 
         ::FileUtils.cp source, target
       end
 
+      # Move a file inside the generated gem.
+      #
       # @param source_path [String, Pathname]
       # @param target_path [String, Pathname]
       # @return [void]
@@ -141,47 +160,50 @@ module ::AmberExtensionGenerator
         ::FileUtils.move source, target
       end
 
+      # Read and parse a template with ERB and
+      # return the result as a `String`.
+      #
       # @param path [String, Pathname]
       # @return [String] Parsed content of the template
       def template_content(path)
-        template_path = ROOT_GEM_PATH / 'lib' / 'amber_extension_generator' / 'templates' / path
+        template_path = TEMPLATES_FOLDER_PATH / path
         ::ERB.new(template_path.read).result(binding)
       end
 
+      # Make a file in the newly generated gem executable.
+      #
       # @param path [String, Pathname]
       # @return [void]
       def make_executable(path)
-        ::FileUtils.chmod 'ugo+x', path
+        ::FileUtils.chmod 'ugo+x', root_path / path
       end
 
+      # Relative path to the main entry file of the generated gem.
+      #
       # @return [Pathname]
       def gem_entry_file_path
         gem_entry_folder_path.sub_ext('.rb')
       end
 
+      # Relative path to the main folder of the generated gem.
+      #
       # @return [Pathname]
       def gem_entry_folder_path
         ::Pathname.new('lib') / gem_name.gsub('-', '/')
       end
 
+      # Relative path to the test folder of the generated gem.
+      #
       # @return [Pathname]
       def gem_test_folder_path
-        (::Pathname.new('test') / gem_name.gsub('-', '/'))
+        ::Pathname.new('test') / gem_name.gsub('-', '/')
       end
 
+      # Name of the generated gem.
+      #
       # @return [String]
       def gem_name
         root_path.basename.to_s
-      end
-
-      # @return [Pathname]
-      def bin_path
-        ::Pathname.new 'bin'
-      end
-
-      # @return [Pathname]
-      def template_path
-        ::Pathname.new 'template'
       end
 
       # @return [Pathname]
@@ -189,6 +211,8 @@ module ::AmberExtensionGenerator
         ::Pathname.new 'dummy_app'
       end
 
+      # Path to the root folder of the generated gem.
+      #
       # @return [Pathname]
       def root_path
         @args.gem_path
@@ -197,6 +221,16 @@ module ::AmberExtensionGenerator
       # @return [Pathname]
       def rails_template_path
         ROOT_GEM_PATH / 'lib' / 'dummy_rails_app_template.rb'
+      end
+
+      # Create a directory in the generated gem
+      # if it doesn't exist already.
+      #
+      # @param path [String, Pathname]
+      # @return [void]
+      def make_dir(path)
+        dir_path = root_path / path
+        ::FileUtils.mkdir dir_path unless ::Dir.exist? dir_path
       end
 
       # @param file_path [String, Pathname]
@@ -211,6 +245,8 @@ module ::AmberExtensionGenerator
         path.write(content)
       end
 
+      # Substitute a part of a certain file in the generated gem.
+      #
       # @param file_path [String, Pathname]
       # @param regexp [Regexp]
       # @param replacement [String]
@@ -226,8 +262,10 @@ module ::AmberExtensionGenerator
         path.write file_content.sub(regexp, replacement)
       end
 
+      # Prepend some content to a file in the generated gem.
+      #
       # @param file_path [String, Pathname]
-      # @param content[String]
+      # @param content [String]
       # @return [void]
       def prepend(file_path, content)
         print "  prepend     ".yellow
@@ -242,6 +280,8 @@ module ::AmberExtensionGenerator
         end
       end
 
+      # Append some content to a file in the generated gem.
+      #
       # @param file_path [String, Pathname]
       # @param content[String]
       # @return [void]
@@ -254,6 +294,8 @@ module ::AmberExtensionGenerator
         ::File.open(path, 'a') { _1.write(content) }
       end
 
+      # Name of the root module of the generated gem.
+      #
       # @return [String]
       def root_module_name
         camelize(gem_name.gsub('-', '/'))

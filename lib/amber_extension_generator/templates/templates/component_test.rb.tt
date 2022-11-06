@@ -1,12 +1,11 @@
 # frozen_string_literal: true
 
-# TODO: Generate test file for component
+require 'test_helper'
 
-class <%= class_name %> < ::ApplicationComponent
-  # Props that your component accepts
-  prop :time, type: ::Time, default: -> { ::Time.now }
-
-  after_initialize do
-    # some initialization
+class <%= full_class_name %>Test < Test::Unit::TestCase
+  test 'returns correct html' do
+    assert_equal <<~HTML, <%= full_class_name %>.call
+      <div>Some HTML!</div>
+    HTML
   end
 end

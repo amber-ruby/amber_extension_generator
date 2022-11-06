@@ -10,21 +10,28 @@ require_relative '../<%= gem_entry_folder_path %>'
 class ::GenerateCommand < ::Thor
   include ::Thor::Actions
 
+  # @return [Module]
   LIBRARY_MODULE = <%= root_module_name %>
+  # @return [String]
   LIBRARY_NAME = '<%= gem_name %>'
+  # @return [Pathname]
   GEM_ROOT_PATH = ::Pathname.new ::File.expand_path('..', __dir__)
+  # @return [Pathname]
   GEM_ENTRY_FOLDER_PATH = ::Pathname.new '<%= gem_entry_folder_path %>'
-
-  desc 'component', 'Generate a new component'
 
   class << self
     # Define the generator's root folder
+    #
+    # @return [String]
     def source_root
       ::File.expand_path('..', __dir__)
     end
   end
 
+  desc 'component', 'Generate a new component'
+
   # @param name [String]
+  # @return [void]
   def component(name)
     name = snake_case(name)
     name = "#{name}_component" unless name.end_with? '_component'
@@ -35,14 +42,15 @@ class ::GenerateCommand < ::Thor
     abstract_component = LIBRARY_MODULE::ABSTRACT_COMPONENT
     component_path = GEM_ENTRY_FOLDER_PATH / 'components' / file_name
     component_asset_path = GEM_ENTRY_FOLDER_PATH / 'components' / name
-    library_relative_path = LIBRARY_NAME.gsub('-', '\')
+    library_relative_path = LIBRARY_NAME.gsub('-', '/')
 
     template 'templates/component.rb.tt', component_path, context: binding
-    ::FileUtils.mkdir component_asset_path
+    ::FileUtils.mkdir component_asset_path unless ::Dir.exist? component_asset_path
     template 'templates/view.html.erb.tt', component_asset_path / 'view.html.erb', context: binding
     template 'templates/style.css.tt', component_asset_path / 'style.css', context: binding
-    # TODO: generating tests
-    # template 'templates/component_test.rb.tt', GEM_ROOT_PATH / 'test' / library_relative_path / "#{name}_test.rb", context: binding
+    template 'templates/component_test.rb.tt',
+             GEM_ROOT_PATH / 'test' / library_relative_path / 'components' / "#{name}_test.rb",
+             context: binding
   end
 
   private
