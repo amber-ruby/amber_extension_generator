@@ -6,7 +6,7 @@ source 'https://rubygems.org'
 gemspec
 
 # Development dependencies
-gem 'byebug'
+gem 'debug'
 gem 'rake', '~> 13.0'
 gem 'rubocop'
 gem 'solargraph', '~> 0.45'
