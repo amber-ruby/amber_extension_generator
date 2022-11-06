@@ -3,9 +3,9 @@
 require 'test_helper'
 
 class <%= full_class_name %>Test < Test::Unit::TestCase
-  test 'returns correct html' do
-    assert_equal <<~HTML, <%= full_class_name %>.call
-      <div>Some HTML!</div>
-    HTML
-  end
+  # test 'returns correct html' do
+  #   assert_equal <<~HTML, <%= full_class_name %>.call
+  #     <div>Some HTML!</div>
+  #   HTML
+  # end
 end

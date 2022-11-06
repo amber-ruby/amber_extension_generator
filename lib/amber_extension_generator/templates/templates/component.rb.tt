@@ -2,9 +2,10 @@
 
 class <%= full_class_name %> < <%= abstract_component %>
   # Props that your component accepts
-  prop :time, type: ::Time, default: -> { ::Time.now }
+  prop :description, type: ::String, default: -> { 'Default Description' }
 
   after_initialize do
     # some initialization
+    @time = ::Time.now
   end
 end
