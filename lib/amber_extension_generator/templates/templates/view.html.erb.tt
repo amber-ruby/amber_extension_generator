@@ -1,3 +1,5 @@
-<h2 class='<%= component_css_class %>'>
-  Hello from <b><%= full_class_name %></b>, initialized at: <%%= time %>
-</h2>
+<div class='<%= component_css_class %>'>
+  <h2>
+    Hello from <b><%= full_class_name %></b>, initialized at: <%%= time %>
+  </h2>
+</div>

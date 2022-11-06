@@ -1,0 +1,13 @@
+# frozen_string_literal: true
+
+module <%= root_module_name %>
+  # Class which hooks into Rails
+  # and configures the application.
+  class Railtie < ::Rails::Railtie
+    initializer '<%= gem_name %>.assets' do |app|
+      (ROOT_PATH / 'assets').each_child do |asset_dir|
+        app.config.assets.paths << asset_dir.to_s
+      end
+    end
+  end
+end

@@ -1,6 +1,10 @@
 # frozen_string_literal: true
 
-generate :controller, 'test', 'index'
+after_bundle do
+  generate :controller, 'test', 'index'
+end
+
+gem 'sassc-rails'
 route "root to: 'test#index'"
 
 environment <<~RUBY, env: :development

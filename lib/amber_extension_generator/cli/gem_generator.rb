@@ -47,14 +47,19 @@ module ::AmberExtensionGenerator
             template 'components/base_component.rb.erb', gem_entry_folder_path / 'components' / 'base_component.rb'
 
             copy 'components.rb', gem_entry_folder_path / 'components.rb'
+            template 'railtie.rb.erb', gem_entry_folder_path / 'railtie.rb'
 
             substitute gem_entry_file_path, /^end/, <<~RUBY.chomp
               end
 
+              require 'pathname'
+              require_relative '#{gem_entry_folder_path.basename}/railtie' if defined?(::Rails::Railtie)
               require_relative '#{gem_entry_folder_path.basename}/components'
+
               # Override this if you want to have a different name for the
               # base component of your gem
               #{root_module_name}::ABSTRACT_COMPONENT = #{root_module_name}::BaseComponent
+              #{root_module_name}::ROOT_PATH = ::Pathname.new ::File.expand_path('#{relative_path_to_root}', __dir__)
             RUBY
 
             create '.rubocop.yml', ::File.read(ROOT_GEM_PATH / '.rubocop.yml')
@@ -64,10 +69,13 @@ module ::AmberExtensionGenerator
             make_executable 'bin/generate'
             make_executable 'bin/dev'
 
-            make_dir 'templates'
+            make_dir 'assets/stylesheets'
+            template 'assets/stylesheets/main.scss.erb', main_stylesheet_path
+            copy 'assets/stylesheets/components.scss', stylesheet_dir_path / 'components.scss'
 
+            make_dir 'templates'
             copy 'templates/component.rb.tt'
-            copy 'templates/style.css.tt'
+            copy 'templates/style.scss.tt'
             copy 'templates/view.html.erb.tt'
             copy 'templates/component_test.rb.tt'
 
@@ -88,7 +96,8 @@ module ::AmberExtensionGenerator
         ::CLI::UI::Frame.open 'Rails dummy app', color: :magenta do
           unless syscall? 'gem list -i rails'
             ::CLI::UI::Frame.open 'Install Rails' do
-              syscall('gem install rails')
+              syscall 'gem install rails'
+              syscall 'gem install sqlite3'
             end
           end
 
@@ -100,8 +109,26 @@ module ::AmberExtensionGenerator
 
           ::CLI::UI::Frame.open 'Patch app' do
             append rails_dummy_path / 'Gemfile', template_content('rails_dummy/Gemfile.erb')
+
+            if exist?(rails_dummy_path / 'app' / 'assets' / 'stylesheets' / 'application.css')
+              move rails_dummy_path / 'app' / 'assets' / 'stylesheets' / 'application.css',
+                   rails_dummy_path / 'app' / 'assets' / 'stylesheets' / 'application.scss'
+
+              append rails_dummy_path / 'app' / 'assets' / 'stylesheets' / 'application.scss', <<~SCSS
+                @import "#{gem_name_path}";
+              SCSS
+            else
+              append rails_dummy_path / 'app' / 'assets' / 'stylesheets' / 'application.sass.scss', <<~SCSS
+                @import "#{gem_name_path}";
+              SCSS
+            end
           end
         end
+      end
+
+      # @return [String]
+      def relative_path_to_root
+        (['..'] * root_module_name.split('::').length).join('/')
       end
 
       # Performs a shell command with a PTY,
@@ -128,51 +155,6 @@ module ::AmberExtensionGenerator
         !cmd.run!(command, input: input, env: env).failure?
       end
 
-      # Parse a template file from this gem using ERB and
-      # and copy it to the newly generated gem.
-      #
-      # @param template_path [String, Pathname]
-      # @param target_path [String, Pathname]
-      # @return [void]
-      def template(template_path, target_path)
-        create target_path, template_content(template_path)
-      end
-
-      # Copy a file from this gem's template folder to
-      # the newly generated gem.
-      #
-      # @param source_path [String, Pathname]
-      # @param target_path [String, Pathname]
-      # @return [void]
-      def copy(source_path, target_path = source_path, recursive: false)
-        source = TEMPLATES_FOLDER_PATH / source_path
-        target = root_path / target_path
-        return ::FileUtils.cp_r source, target if recursive
-
-        ::FileUtils.cp source, target
-      end
-
-      # Move a file inside the generated gem.
-      #
-      # @param source_path [String, Pathname]
-      # @param target_path [String, Pathname]
-      # @return [void]
-      def move(source_path, target_path)
-        source = root_path / source_path
-        target = root_path / target_path
-        ::FileUtils.move source, target
-      end
-
-      # Read and parse a template with ERB and
-      # return the result as a `String`.
-      #
-      # @param path [String, Pathname]
-      # @return [String] Parsed content of the template
-      def template_content(path)
-        template_path = TEMPLATES_FOLDER_PATH / path
-        ::ERB.new(template_path.read).result(binding)
-      end
-
       # Make a file in the newly generated gem executable.
       #
       # @param path [String, Pathname]
@@ -192,21 +174,40 @@ module ::AmberExtensionGenerator
       #
       # @return [Pathname]
       def gem_entry_folder_path
-        ::Pathname.new('lib') / gem_name.gsub('-', '/')
+        ::Pathname.new('lib') / gem_name_path
       end
 
       # Relative path to the test folder of the generated gem.
       #
       # @return [Pathname]
       def gem_test_folder_path
-        ::Pathname.new('test') / gem_name.gsub('-', '/')
+        ::Pathname.new('test') / gem_name_path
+      end
+
+      # @return [Pathname]
+      def gem_name_path
+        @gem_name_path ||= ::Pathname.new gem_name.gsub('-', '/')
       end
 
       # Name of the generated gem.
       #
       # @return [String]
       def gem_name
-        root_path.basename.to_s
+        @gem_name ||= root_path.basename.to_s
+      end
+
+      # Relative path to the stylesheet directory of the generated gem.
+      #
+      # @return [Pathname]
+      def stylesheet_dir_path
+        ::Pathname.new('assets') / 'stylesheets' / gem_name_path
+      end
+
+      # Relative path to the main stylesheet file of the generated gem.
+      #
+      # @return [Pathname]
+      def main_stylesheet_path
+        stylesheet_dir_path.sub_ext '.scss'
       end
 
       # @return [Pathname]
@@ -226,6 +227,15 @@ module ::AmberExtensionGenerator
         ROOT_GEM_PATH / 'lib' / 'dummy_rails_app_template.rb'
       end
 
+      # Check whether the given file/directory exists
+      # in the generated gem.
+      #
+      # @param path [String, Pathname]
+      # @return [Boolean]
+      def exist?(path)
+        (root_path / path).exist?
+      end
+
       # Create a directory in the generated gem
       # if it doesn't exist already.
       #
@@ -233,8 +243,9 @@ module ::AmberExtensionGenerator
       # @return [void]
       def make_dir(path)
         dir_path = root_path / path
-        dir_path.mkdir unless dir_path.exist?
+        ::FileUtils.mkdir_p dir_path unless dir_path.exist?
       end
+      alias mkdir make_dir
 
       # @param string [String, Symbol]
       # @return [String]
@@ -242,6 +253,61 @@ module ::AmberExtensionGenerator
         "#{string.to_s.rjust(12, ' ')}  "
       end
 
+      # Parse a template file from this gem using ERB and
+      # and copy it to the newly generated gem.
+      #
+      # @param template_path [String, Pathname]
+      # @param target_path [String, Pathname]
+      # @return [void]
+      def template(template_path, target_path)
+        create target_path, template_content(template_path)
+      end
+
+      # Copy a file from this gem's template folder to
+      # the newly generated gem.
+      #
+      # @param source_path [String, Pathname]
+      # @param target_path [String, Pathname]
+      # @return [void]
+      def copy(source_path, target_path = source_path, recursive: false)
+        print action_message(__method__).green
+        puts target_path
+
+        source = TEMPLATES_FOLDER_PATH / source_path
+        target = root_path / target_path
+        ::FileUtils.mkdir_p(target.dirname) unless target.dirname.directory?
+        return ::FileUtils.cp_r source, target if recursive
+
+        ::FileUtils.cp source, target
+      end
+
+      # Move a file inside the generated gem.
+      #
+      # @param source_path [String, Pathname]
+      # @param target_path [String, Pathname]
+      # @return [void]
+      def move(source_path, target_path)
+        print action_message(__method__).yellow
+        puts "#{source_path} -> #{target_path}"
+
+        source = root_path / source_path
+        target = root_path / target_path
+        ::FileUtils.move source, target
+      end
+
+      # Read and parse a template with ERB and
+      # return the result as a `String`.
+      #
+      # @param path [String, Pathname]
+      # @return [String] Parsed content of the template
+      def template_content(path)
+        template_path = TEMPLATES_FOLDER_PATH / path
+        ::ERB.new(template_path.read).result(binding)
+      end
+
+      # Create a new file with the specified content
+      # in the newly generated gem.
+      #
       # @param file_path [String, Pathname]
       # @param content [String]
       def create(file_path, content)
@@ -261,7 +327,7 @@ module ::AmberExtensionGenerator
       # @param replacement [String]
       # @return [void]
       def substitute(file_path, regexp, replacement)
-        print action_message(__method__).blue
+        print action_message(:gsub).yellow
         puts file_path
 
         path = root_path / file_path
@@ -307,13 +373,14 @@ module ::AmberExtensionGenerator
       #
       # @return [String]
       def root_module_name
-        camelize(gem_name.gsub('-', '/'))
+        camelize(gem_name_path)
       end
 
       # @param string [String]
       # @param uppercase_first_letter [Boolean]
       # @return [String]
       def camelize(string, uppercase_first_letter: true)
+        string = string.to_s
         string = if uppercase_first_letter
                    string.sub(/^[a-z\d]*/, &:capitalize)
                  else

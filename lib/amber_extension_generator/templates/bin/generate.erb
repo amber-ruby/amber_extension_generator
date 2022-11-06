@@ -15,7 +15,7 @@ class ::GenerateCommand < ::Thor
   # @return [String]
   LIBRARY_NAME = '<%= gem_name %>'
   # @return [Pathname]
-  GEM_ROOT_PATH = ::Pathname.new ::File.expand_path('..', __dir__)
+  ROOT_PATH = ::Pathname.new ::File.expand_path('..', __dir__)
   # @return [Pathname]
   GEM_ENTRY_FOLDER_PATH = ::Pathname.new '<%= gem_entry_folder_path %>'
 
@@ -38,11 +38,13 @@ class ::GenerateCommand < ::Thor
     @name = name
 
     template 'templates/component.rb.tt', component_path
-    component_asset_path.mkdir unless component_asset_path.exist?
+    component_assets_path.mkdir unless component_assets_path.exist?
 
-    template 'templates/view.html.erb.tt', component_asset_path / 'view.html.erb'
-    template 'templates/style.css.tt', component_asset_path / 'style.css'
+    template 'templates/view.html.erb.tt', component_assets_path / 'view.html.erb'
+    template 'templates/style.scss.tt', component_assets_path / 'style.scss'
     template 'templates/component_test.rb.tt', component_test_file_path
+
+    append_file main_components_stylesheet_path, %(\n@import "../../../#{component_assets_path}/style.scss";)
   end
 
   private
@@ -53,18 +55,23 @@ class ::GenerateCommand < ::Thor
   end
 
   # @return [Pathname]
+  def main_components_stylesheet_path
+    ROOT_PATH / 'assets' / 'stylesheets' / library_relative_path / 'components.scss'
+  end
+
+  # @return [Pathname]
   def components_test_folder_path
-    GEM_ROOT_PATH / 'test' / library_relative_path / 'components'
+    ROOT_PATH / 'test' / library_relative_path / 'components'
   end
 
   # @return [Pathname]
   def library_relative_path
-    @library_relative_path ||= LIBRARY_NAME.gsub('-', '/')
+    @library_relative_path ||= ::Pathname.new LIBRARY_NAME.gsub('-', '/')
   end
 
   # @return [Pathname]
-  def component_asset_path
-    @component_asset_path ||= GEM_ENTRY_FOLDER_PATH / 'components' / @name
+  def component_assets_path
+    @component_assets_path ||= GEM_ENTRY_FOLDER_PATH / 'components' / @name
   end
 
   # @return [Pathname]

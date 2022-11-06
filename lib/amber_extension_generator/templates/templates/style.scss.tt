@@ -1,3 +1,5 @@
 .<%= component_css_class %> {
-  color: blue;
+  h2 {
+    color: blue;
+  }
 }
