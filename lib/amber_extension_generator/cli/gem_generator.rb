@@ -233,13 +233,19 @@ module ::AmberExtensionGenerator
       # @return [void]
       def make_dir(path)
         dir_path = root_path / path
-        ::FileUtils.mkdir dir_path unless ::Dir.exist? dir_path
+        dir_path.mkdir unless dir_path.exist?
+      end
+
+      # @param string [String, Symbol]
+      # @return [String]
+      def action_message(string)
+        "#{string.to_s.rjust(12, ' ')}  "
       end
 
       # @param file_path [String, Pathname]
       # @param content [String]
       def create(file_path, content)
-        print "  create      ".green
+        print action_message(__method__).green
         puts file_path
 
         path = root_path / file_path
@@ -255,7 +261,7 @@ module ::AmberExtensionGenerator
       # @param replacement [String]
       # @return [void]
       def substitute(file_path, regexp, replacement)
-        print "  substitute  ".blue
+        print action_message(__method__).blue
         puts file_path
 
         path = root_path / file_path
@@ -271,7 +277,7 @@ module ::AmberExtensionGenerator
       # @param content [String]
       # @return [void]
       def prepend(file_path, content)
-        print "  prepend     ".yellow
+        print action_message(__method__).yellow
         puts file_path
 
         # @type [Pathname]
@@ -289,7 +295,7 @@ module ::AmberExtensionGenerator
       # @param content[String]
       # @return [void]
       def append(file_path, content)
-        print "  append      ".yellow
+        print action_message(__method__).yellow
         puts file_path
 
         # @type [Pathname]

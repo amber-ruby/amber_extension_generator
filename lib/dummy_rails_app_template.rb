@@ -2,7 +2,6 @@
 
 generate :controller, 'test', 'index'
 route "root to: 'test#index'"
-gem 'debug'
 
 environment <<~RUBY, env: :development
   # === GEM AUTO-RELOADING ===
