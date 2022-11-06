@@ -35,26 +35,73 @@ class ::GenerateCommand < ::Thor
   def component(name)
     name = snake_case(name)
     name = "#{name}_component" unless name.end_with? '_component'
-    file_name = "#{name}.rb"
-    class_name = camelize(name)
-    component_css_class = "#{LIBRARY_NAME}--#{name}"
-    full_class_name = "#{LIBRARY_MODULE}::#{class_name}"
-    abstract_component = LIBRARY_MODULE::ABSTRACT_COMPONENT
-    component_path = GEM_ENTRY_FOLDER_PATH / 'components' / file_name
-    component_asset_path = GEM_ENTRY_FOLDER_PATH / 'components' / name
-    library_relative_path = LIBRARY_NAME.gsub('-', '/')
+    @name = name
 
-    template 'templates/component.rb.tt', component_path, context: binding
-    ::FileUtils.mkdir component_asset_path unless ::Dir.exist? component_asset_path
-    template 'templates/view.html.erb.tt', component_asset_path / 'view.html.erb', context: binding
-    template 'templates/style.css.tt', component_asset_path / 'style.css', context: binding
-    template 'templates/component_test.rb.tt',
-             GEM_ROOT_PATH / 'test' / library_relative_path / 'components' / "#{name}_test.rb",
-             context: binding
+    template 'templates/component.rb.tt', component_path
+    component_asset_path.mkdir unless component_asset_path.exist?
+
+    template 'templates/view.html.erb.tt', component_asset_path / 'view.html.erb'
+    template 'templates/style.css.tt', component_asset_path / 'style.css'
+    template 'templates/component_test.rb.tt', component_test_file_path
   end
 
   private
 
+  # @return [Pathname]
+  def component_test_file_path
+    components_test_folder_path / "#{@name}_test.rb"
+  end
+
+  # @return [Pathname]
+  def components_test_folder_path
+    GEM_ROOT_PATH / 'test' / library_relative_path / 'components'
+  end
+
+  # @return [Pathname]
+  def library_relative_path
+    @library_relative_path ||= LIBRARY_NAME.gsub('-', '/')
+  end
+
+  # @return [Pathname]
+  def component_asset_path
+    @component_asset_path ||= GEM_ENTRY_FOLDER_PATH / 'components' / @name
+  end
+
+  # @return [Pathname]
+  def component_path
+    @component_path ||= GEM_ENTRY_FOLDER_PATH / 'components' / file_name
+  end
+
+  # @return [String]
+  def full_class_name
+    "#{LIBRARY_MODULE}::#{class_name}"
+  end
+
+  # @return [String]
+  def component_css_class
+    "#{LIBRARY_NAME}--#{@name}"
+  end
+
+  # @return [String]
+  def class_name
+    @class_name ||= camelize(@name)
+  end
+
+  # @return [String]
+  def file_name
+    @file_name ||= "#{@name}.rb"
+  end
+
+  # @return [Class]
+  def abstract_component
+    LIBRARY_MODULE::ABSTRACT_COMPONENT
+  end
+
+  # Converts a string to camel/Pascal Case.
+  #
+  #     camelize('some_snake_case') #=> "SomeSnakeCase"
+  #     camelize('some/snake_case') #=> "Some::SnakeCase"
+  #
   # @param string [String]
   # @param uppercase_first_letter [Boolean]
   # @return [String]
@@ -74,11 +121,14 @@ class ::GenerateCommand < ::Thor
   # Converts a string in PascalCase or camelCase to snake_case.
   #
   #     snake_case('SomePascalCase') => "some_pascal_case"
+  #     snake_case('Some::PascalCase') => "some/pascal_case"
   #
   # @param string [String]
   # @return [String]
   def snake_case(string)
-    string.gsub(/([^A-Z])([A-Z]+)/, '\1_\2').downcase
+    string.gsub(/([^A-Z])([A-Z]+)/, '\1_\2')
+          .gsub(%r{::_|/_}, '/')
+          .downcase
   end
 end
 
