@@ -6,7 +6,6 @@ require 'rainbow/refinement'
 require 'cli/ui'
 require 'tty-command'
 require 'erb'
-require 'debug'
 
 using ::Rainbow
 
