@@ -38,7 +38,7 @@ module ::AmberExtensionGenerator
 
       # @return [void]
       def generate_amber_gem
-        ::CLI::UI::Frame.open 'Create gem', color: :green do
+        ::CLI::UI::Frame.open 'Create gem', color: :green do # rubocop:disable Metrics/BlockLength
           ::CLI::UI::Frame.open 'Generate gem with bundler' do
             syscall "bundle gem #{root_path} --linter=rubocop --ci=github --test=test-unit", input: "y\n"
           end
