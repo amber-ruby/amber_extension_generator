@@ -19,7 +19,7 @@ $ gem install amber_extension_generator
 You can generate a new component pack like so
 
 ```sh
-amber_extension_generator my_library_name
+$ amber_extension_generator my_library_name
 ```
 
 This will create a new gem in `my_library_name` named `my_library_name`.
