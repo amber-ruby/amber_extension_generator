@@ -16,7 +16,7 @@ GEMSPEC_PATH = ::GEM_PATH / ::GEM_PATH.basename.sub_ext('.gemspec')
 
 ::FileUtils.chdir ::File.expand_path('..', __dir__) do
   system! "rm -rf #{::GEM_PATH}"
-  system! "exe/amber_extension_generator #{::GEM_PATH}"
+  system! "exe/amber_extension_generator new #{::GEM_PATH}"
 
   legal_lines = []
   ::File.open(::GEMSPEC_PATH) do |file|

@@ -8,7 +8,7 @@ module ::AmberExtensionGenerator
     class Args
       BANNER = <<~DOC
         Usage:
-          amber_extension_generator GEM_PATH
+          amber_extension_generator new GEM_PATH
           amber_extension_generator [options]
 
       DOC
@@ -33,7 +33,8 @@ module ::AmberExtensionGenerator
             end
           end
 
-          args.gem_path = ::Pathname.new(::File.expand_path(argv.first))
+          gem_path = argv.first == 'new' ? argv[1] : argv.first
+          args.gem_path = ::Pathname.new(::File.expand_path(gem_path))
           opt_parser.parse(argv)
 
           args

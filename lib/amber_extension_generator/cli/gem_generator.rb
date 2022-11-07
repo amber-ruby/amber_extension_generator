@@ -109,7 +109,7 @@ module ::AmberExtensionGenerator
         substitute "#{gem_name}.gemspec", /^end/, <<~RUBY.chomp
             # ignore the dummy Rails app when building the gem
             spec.files.reject! { _1.match(/^#{rails_dummy_path}/) }
-            spec.add_dependency 'amber_component', '~> #{VERSION}'
+            spec.add_dependency 'amber_component', '#{amber_component_version}'
             spec.add_development_dependency 'thor'
             spec.add_development_dependency 'sassc'
             spec.add_development_dependency 'capybara'
@@ -171,6 +171,14 @@ module ::AmberExtensionGenerator
       # @return [String]
       def relative_path_to_root
         (['..'] * root_module_name.split('::').length).join('/')
+      end
+
+      # @return [String]
+      def amber_component_version
+        version_ary = VERSION.split '.'
+        version_ary.pop
+
+        "~> #{version_ary.join('.')}"
       end
 
       # Performs a shell command with a PTY,
