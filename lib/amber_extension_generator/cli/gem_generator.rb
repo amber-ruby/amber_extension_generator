@@ -40,7 +40,7 @@ module ::AmberExtensionGenerator
       def generate_amber_gem
         ::CLI::UI::Frame.open 'Create gem', color: :green do # rubocop:disable Metrics/BlockLength
           ::CLI::UI::Frame.open 'Generate gem with bundler' do
-            syscall "bundle gem #{root_path} --linter=rubocop --ci=github --test=test-unit", input: "y\n"
+            syscall "bundle gem #{root_path} --linter=rubocop --ci=github --test=minitest", input: "y\n"
           end
 
           ::CLI::UI::Frame.open 'Patch gem' do
@@ -87,6 +87,15 @@ module ::AmberExtensionGenerator
                 spec.add_development_dependency 'sassc'
               end
             RUBY
+
+            copy 'test/component_test_case.rb'
+            substitute 'Rakefile', /test_\*\.rb/, '*_test.rb'
+            inner_module_name = gem_name.split('-').last
+            move gem_test_folder_path.parent / "test_#{inner_module_name}.rb",
+                 gem_test_folder_path.parent / "#{inner_module_name}_test.rb"
+
+            append 'test/test_helper.rb',
+                   "require_relative 'component_test_case'\n"
           end
         end
       end
