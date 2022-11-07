@@ -82,9 +82,10 @@ module ::AmberExtensionGenerator
             substitute "#{gem_name}.gemspec", /^end/, <<~RUBY.chomp
                 # ignore the dummy Rails app when building the gem
                 spec.files.reject! { _1.match(/^#{rails_dummy_path}/) }
-                spec.add_dependency 'amber_component'
+                spec.add_dependency 'amber_component', '~> #{VERSION}'
                 spec.add_development_dependency 'thor'
                 spec.add_development_dependency 'sassc'
+                spec.add_development_dependency 'capybara'
               end
             RUBY
 
