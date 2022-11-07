@@ -2,6 +2,8 @@
 [![CI badge](https://github.com/amber-ruby/amber_extension_generator/actions/workflows/ci_ruby.yml/badge.svg)](https://github.com/amber-ruby/amber_extension_generator/actions/workflows/ci_ruby.yml)
 [![Coverage Badge](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/Verseth/82fd98743c74c8c36a9b04c9e325755e/raw/197794be336cde2bdaa3bccec99ebfc4660a3186/amber_extension_generator__heads_main.json)](https://github.com/amber-ruby/amber_extension_generator/actions/workflows/ci_ruby.yml)
 
+<img src="banner.png" width="500px" style="margin-bottom: 2rem;"/>
+
 # AmberExtensionGenerator
 
 Welcome to your new gem! In this directory, you'll find the files you need to be able to package up your Ruby library into a gem. Put your Ruby code in the file `lib/amber_extension_generator`. To experiment with that code, run `bin/console` for an interactive prompt.

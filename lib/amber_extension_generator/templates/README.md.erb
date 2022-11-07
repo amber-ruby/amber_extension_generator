@@ -1,0 +1,129 @@
+# <%= root_module_name %>
+
+Welcome to your [amber_component](https://github.com/amber-ruby/amber_component/) component pack! In this directory, you'll find the files you need to be able to package up your Ruby library into a gem. Put your Ruby code in the file `<%= gem_entry_folder_path %>`. To experiment with that code, run `bin/console` for an interactive prompt.
+
+TODO: Delete this and the text above, and describe your gem
+
+## Installation
+
+Install the gem and add to the application's Gemfile by executing:
+
+```sh
+$ bundle add <%= gem_name %>
+```
+
+If bundler is not being used to manage dependencies, install the gem by executing:
+
+```sh
+$ gem install <%= gem_name %>
+```
+
+Afterwards you need to import this gem's SCSS stylesheet like so:
+
+```scss
+@import "<%= gem_name_path %>";
+```
+
+If you're using Rails, that line should be appended to `app/assets/stylesheets/application.scss`.
+
+There is a generator that does it for you.
+
+```sh
+bin/rails generate <%= gem_name_rake %>:install
+```
+
+## Usage
+
+TODO: Write usage instructions here
+
+## Development
+
+### Setup
+
+To setup this gem for development you should run the setup script.
+This should install all dependencies and make the gem ready.
+
+```sh
+$ bin/setup
+```
+
+### Console
+
+To make development and experimenting easier there is a script
+that lets you access an IRB with this entire gem preloaded.
+
+```sh
+$ bin/console
+```
+
+### Development app
+
+There is a dummy Rails app in `dummy_app` which has this gem installed and configured
+for hot-reloading. You don't have to restart the server when you make changes to your gem,
+it will reload automatically.
+
+You can start it by running
+
+```sh
+$ bin/dev
+```
+
+You can use it to experiment with your components.
+
+### Generating new components
+
+You can generate new component by running
+
+```sh
+$ bin/generate component button
+```
+
+This will create a few files:
+- the logic/mini controller of your component `<%= gem_entry_folder_path %>/components/button_component.rb` containing `<%= root_module_name %>::ButtonComponent`
+- your component's template/view `<%= gem_entry_folder_path %>/components/button_component/view.html.erb`
+- your component's stylesheet `<%= gem_entry_folder_path %>/components/button_component/style.scss`
+- your component's test file `<%= gem_test_folder_path %>/components/button_component_test.rb`
+
+The stylesheet of your new component will be automatically imported
+in `assets/stylesheets/<%= gem_name_path %>/components.scss`.
+
+### Tests
+
+You can run all tests like this.
+
+```sh
+$ bundle exec rake test
+```
+
+### Release
+
+To release a new version, update the version number in `version.rb`, and then run
+
+```sh
+$ bundle exec rake release
+```
+
+This will create a git tag for the version, push git commits and the created tag, and push the `.gem` file to [rubygems.org](https://rubygems.org).
+
+### Local installation
+
+To install this gem onto your local machine, run
+
+```sh
+$ bundle exec rake install
+```
+
+## Contributing
+
+Bug reports and pull requests are welcome on GitHub at https://github.com/[USERNAME]/<%= gem_name %>.
+
+## License
+
+The gem is available as open source under the terms of the [MIT License](https://opensource.org/licenses/MIT).
+
+## Acknowledgement
+
+This component pack is powered by [amber_component](https://github.com/amber-ruby/amber_component) and has been generated with [amber_extension_generator](https://github.com/amber-ruby/amber_extension_generator).
+
+[<img src="amber_banner.png" width="200px" style="margin-bottom: 2rem;"/>](https://github.com/amber-ruby/amber_component)
+

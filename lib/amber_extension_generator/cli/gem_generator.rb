@@ -12,7 +12,7 @@ using ::Rainbow
 module ::AmberExtensionGenerator
   module CLI
     # Generates a new extension gem
-    class GemGenerator
+    class GemGenerator # rubocop:disable Metrics/ClassLength
       class << self
         # @param args [::AmberExtensionGenerator::CLI::Args]
         # @return [void]
@@ -38,7 +38,7 @@ module ::AmberExtensionGenerator
 
       # @return [void]
       def generate_amber_gem
-        ::CLI::UI::Frame.open 'Create gem', color: :green do # rubocop:disable Metrics/BlockLength
+        ::CLI::UI::Frame.open 'Create gem', color: :green do
           ::CLI::UI::Frame.open 'Generate gem with bundler' do
             syscall "bundle gem #{root_path} --linter=rubocop --ci=github --test=minitest", input: "y\n"
           end
@@ -46,8 +46,8 @@ module ::AmberExtensionGenerator
           ::CLI::UI::Frame.open 'Patch gem' do
             template 'components/base_component.rb.erb', gem_entry_folder_path / 'components' / 'base_component.rb'
 
-            copy 'components.rb', gem_entry_folder_path / 'components.rb'
-            template 'railtie.rb.erb', gem_entry_folder_path / 'railtie.rb'
+            copy 'lib/components.rb', gem_entry_folder_path / 'components.rb'
+            template 'lib/railtie.rb.erb', gem_entry_folder_path / 'railtie.rb'
 
             substitute gem_entry_file_path, /^end/, <<~RUBY.chomp
               end
@@ -62,48 +62,74 @@ module ::AmberExtensionGenerator
               #{root_module_name}::ROOT_PATH = ::Pathname.new ::File.expand_path('#{relative_path_to_root}', __dir__)
             RUBY
 
-            create '.rubocop.yml', ::File.read(ROOT_GEM_PATH / '.rubocop.yml')
+            template 'lib/generators/install_generator.rb.erb',
+                     ::Pathname.new('lib') / 'generators' / gem_name_path / 'install_generator.rb'
 
-            template 'bin/generate.erb', 'bin/generate'
-            template 'bin/dev.erb', 'bin/dev'
-            make_executable 'bin/generate'
-            make_executable 'bin/dev'
+            copy '.rubocop.yml'
+            template 'README.md.erb', 'README.md'
+            copy 'amber_banner.png'
 
-            make_dir 'assets/stylesheets'
-            template 'assets/stylesheets/main.scss.erb', main_stylesheet_path
-            copy 'assets/stylesheets/components.scss', stylesheet_dir_path / 'components.scss'
-
-            make_dir 'templates'
-            copy 'templates/component.rb.tt'
-            copy 'templates/style.scss.tt'
-            copy 'templates/view.html.erb.tt'
-            copy 'templates/component_test.rb.tt'
-
-            substitute "#{gem_name}.gemspec", /^end/, <<~RUBY.chomp
-                # ignore the dummy Rails app when building the gem
-                spec.files.reject! { _1.match(/^#{rails_dummy_path}/) }
-                spec.add_dependency 'amber_component', '~> #{VERSION}'
-                spec.add_development_dependency 'thor'
-                spec.add_development_dependency 'sassc'
-                spec.add_development_dependency 'capybara'
-              end
-            RUBY
-
-            copy 'test/component_test_case.rb'
-            substitute 'Rakefile', /test_\*\.rb/, '*_test.rb'
-            inner_module_name = gem_name.split('-').last
-            move gem_test_folder_path.parent / "test_#{inner_module_name}.rb",
-                 gem_test_folder_path.parent / "#{inner_module_name}_test.rb"
-
-            append 'test/test_helper.rb',
-                   "require_relative 'component_test_case'\n"
+            generate_scripts
+            generate_assets
+            copy_templates
+            patch_gemspec
+            configure_tests
           end
         end
       end
 
       # @return [void]
-      def generate_rails_dummy_app
-        ::CLI::UI::Frame.open 'Rails dummy app', color: :magenta do
+      def generate_scripts
+        template 'bin/generate.erb', 'bin/generate'
+        template 'bin/dev.erb', 'bin/dev'
+        make_executable 'bin/generate'
+        make_executable 'bin/dev'
+      end
+
+      # @return [void]
+      def generate_assets
+        make_dir 'assets/stylesheets'
+        template 'assets/stylesheets/main.scss.erb', main_stylesheet_path
+        copy 'assets/stylesheets/components.scss', stylesheet_dir_path / 'components.scss'
+      end
+
+      # @return [void]
+      def copy_templates
+        make_dir 'templates'
+        copy 'templates/component.rb.tt'
+        copy 'templates/style.scss.tt'
+        copy 'templates/view.html.erb.tt'
+        copy 'templates/component_test.rb.tt'
+      end
+
+      # @return [void]
+      def patch_gemspec
+        substitute "#{gem_name}.gemspec", /^end/, <<~RUBY.chomp
+            # ignore the dummy Rails app when building the gem
+            spec.files.reject! { _1.match(/^#{rails_dummy_path}/) }
+            spec.add_dependency 'amber_component', '~> #{VERSION}'
+            spec.add_development_dependency 'thor'
+            spec.add_development_dependency 'sassc'
+            spec.add_development_dependency 'capybara'
+          end
+        RUBY
+      end
+
+      # @return [void]
+      def configure_tests
+        copy 'test/component_test_case.rb'
+        substitute 'Rakefile', /test_\*\.rb/, '*_test.rb'
+        inner_module_name = gem_name.split('-').last
+        move gem_test_folder_path.parent / "test_#{inner_module_name}.rb",
+             gem_test_folder_path.parent / "#{inner_module_name}_test.rb"
+
+        append 'test/test_helper.rb',
+               "require_relative 'component_test_case'\n"
+      end
+
+      # @return [void]
+      def generate_rails_dummy_app # rubocop:disable Metrics/MethodLength
+        ::CLI::UI::Frame.open 'Rails dummy app', color: :magenta do # rubocop:disable Metrics/BlockLength
           unless syscall? 'gem list -i rails'
             ::CLI::UI::Frame.open 'Install Rails' do
               syscall 'gem install rails'
@@ -124,6 +150,10 @@ module ::AmberExtensionGenerator
               move rails_dummy_path / 'app' / 'assets' / 'stylesheets' / 'application.css',
                    rails_dummy_path / 'app' / 'assets' / 'stylesheets' / 'application.scss'
 
+              append rails_dummy_path / 'app' / 'assets' / 'stylesheets' / 'application.scss', <<~SCSS
+                @import "#{gem_name_path}";
+              SCSS
+            elsif exist?(rails_dummy_path / 'app' / 'assets' / 'stylesheets' / 'application.scss')
               append rails_dummy_path / 'app' / 'assets' / 'stylesheets' / 'application.scss', <<~SCSS
                 @import "#{gem_name_path}";
               SCSS
@@ -199,11 +229,23 @@ module ::AmberExtensionGenerator
         @gem_name_path ||= ::Pathname.new gem_name.gsub('-', '/')
       end
 
+      # @return [String]
+      def gem_name_rake
+        gem_name.gsub('-', ':')
+      end
+
       # Name of the generated gem.
       #
       # @return [String]
       def gem_name
         @gem_name ||= root_path.basename.to_s
+      end
+
+      # Name of the root module of the generated gem.
+      #
+      # @return [String]
+      def root_module_name
+        @root_module_name ||= camelize(gem_name_path)
       end
 
       # Relative path to the stylesheet directory of the generated gem.
@@ -232,6 +274,9 @@ module ::AmberExtensionGenerator
         @args.gem_path
       end
 
+      # Path to the Rails template used to generate
+      # the dummy development app in the generated gem.
+      #
       # @return [Pathname]
       def rails_template_path
         ROOT_GEM_PATH / 'lib' / 'dummy_rails_app_template.rb'
@@ -377,13 +422,6 @@ module ::AmberExtensionGenerator
         # @type [Pathname]
         path = root_path / file_path
         ::File.open(path, 'a') { _1.write(content) }
-      end
-
-      # Name of the root module of the generated gem.
-      #
-      # @return [String]
-      def root_module_name
-        camelize(gem_name_path)
       end
 
       # @param string [String]

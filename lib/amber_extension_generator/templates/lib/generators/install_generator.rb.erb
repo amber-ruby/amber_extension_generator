@@ -1,0 +1,36 @@
+# frozen_string_literal: true
+
+require 'fileutils'
+
+module <%= root_module_name %>
+  module Generators
+    # A Rails generator which installs the
+    # library in a Rails project.
+    class InstallGenerator < ::Rails::Generators::Base
+      desc 'Install the <%= gem_name %> gem'
+
+      def install
+        uncomment_lines 'Gemfile', /sassc-rails/
+
+        if ::File.exist? 'app/assets/stylesheets/application.css.scss'
+          ::FileUtils.move 'app/assets/stylesheets/application.css.scss', 'app/assets/stylesheets/application.scss'
+        end
+
+        if ::File.exist? 'app/assets/stylesheets/application.css.sass'
+          ::FileUtils.move 'app/assets/stylesheets/application.css.sass', 'app/assets/stylesheets/application.sass'
+        end
+
+        if ::File.exist? 'app/assets/stylesheets/application.css'
+          ::FileUtils.move 'app/assets/stylesheets/application.css', 'app/assets/stylesheets/application.scss'
+        end
+
+        if ::File.exist? 'app/assets/stylesheets/application.scss'
+          append_file 'app/assets/stylesheets/application.scss', %(@import "<%= gem_name_path %>";\n)
+        elsif ::File.exist? 'app/assets/stylesheets/application.sass'
+          append_file 'app/assets/stylesheets/application.sass', %(@import "<%= gem_name_path %>"\n)
+        end
+      end
+
+    end
+  end
+end
