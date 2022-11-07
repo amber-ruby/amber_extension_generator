@@ -87,6 +87,8 @@ This will create a few files:
 The stylesheet of your new component will be automatically imported
 in `assets/stylesheets/<%= gem_name_path %>/components.scss`.
 
+More details on how these components work can be found at [amber_component](https://github.com/amber-ruby/amber_component).
+
 ### Tests
 
 You can run all tests like this.
@@ -94,6 +96,10 @@ You can run all tests like this.
 ```sh
 $ bundle exec rake test
 ```
+
+You can unit test your components using the custom test suite which provides
+handy assertions for the HTML rendered by your component.
+More details can be found at [amber_component](https://github.com/amber-ruby/amber_component).
 
 ### Release
 
