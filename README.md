@@ -48,8 +48,8 @@ $ bin/setup
 
 You can quickly generate a gem for development purposes by running
 
-```rb
-bin/generate_gem
+```sh
+$ bin/generate_gem
 ```
 
 The generated gem will be located in the `tmp` folder.
