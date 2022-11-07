@@ -44,6 +44,16 @@ This should install all dependencies and make the gem ready.
 $ bin/setup
 ```
 
+### Generating a gem
+
+You can quickly generate a gem for development purposes by running
+
+```rb
+bin/generate_gem
+```
+
+The generated gem will be located in the `tmp` folder.
+
 ### Console
 
 To make development and experimenting easier there is a script

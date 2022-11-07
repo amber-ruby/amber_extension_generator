@@ -65,7 +65,7 @@ module ::AmberExtensionGenerator
             template 'lib/generators/install_generator.rb.erb',
                      ::Pathname.new('lib') / 'generators' / gem_name_path / 'install_generator.rb'
 
-            copy '.rubocop.yml'
+            template '.rubocop.yml.erb', '.rubocop.yml'
             template 'README.md.erb', 'README.md'
             copy 'amber_banner.png'
 
@@ -82,8 +82,10 @@ module ::AmberExtensionGenerator
       def generate_scripts
         template 'bin/generate.erb', 'bin/generate'
         template 'bin/dev.erb', 'bin/dev'
+        template 'bin/setup.erb', 'bin/setup'
         make_executable 'bin/generate'
         make_executable 'bin/dev'
+        make_executable 'bin/setup'
       end
 
       # @return [void]
